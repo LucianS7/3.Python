@@ -1,5 +1,5 @@
 import pygame
-from .const import CREAM, BLACK, BLUE, SQARE_SIZE
+from .const import WHITE, BLACK, BLUE, SQUARE_SIZE
 from components.board import Board
 
 class Game:
@@ -12,36 +12,40 @@ class Game:
     def _init(self):
         self.selected_piece = None
         self.board = Board()
-        self.turn = CREAM
+        self.turn = WHITE
         self.turn_nr = 1
-        self.posible_moves = {}
+        self.possible_moves = {}
 
 
     def select(self, row, column):
         if self.selected_piece:
-            result = self._muta(row, column, self.turn_nr)
+            result = self._move(row, column, self.turn_nr)
             if not result:
+                self.selected_piece.deselect()
                 self.selected_piece = None
                 self.select(row, column)
-
-        Piece = self.board.get_piece(row, column)
-        if Piece != 0 and Piece.color == self.turn:
-            self.selected_piece = Piece
-            self.posible_moves = self.board.get_posible_moves(Piece)
+    
+        piece = self.board.get_piece(row, column)
+        if piece != 0 and piece.color == self.turn:
+            self.selected_piece = piece
+            self.possible_moves = self.board.get_possible_moves(piece)
+            piece.select()
             return True
 
         return False
  
 
     def _move(self, row, column, turn_nr):
-        Piece = self.board.get_piece(row, column)
-        if self.selected_piece and Piece == 0 and (row, column) in self.posible_moves:
-            jumped_pieces = self.posible_moves[(row, column)]
+        piece = self.board.get_piece(row, column)
+
+        if self.selected_piece and piece == 0 and (row, column) in self.possible_moves:
+            jumped_pieces = self.possible_moves[(row, column)]
+            self.selected_piece.deselect()
             self.board.move(self.selected_piece, row, column, turn_nr, jumped_pieces)
             print("Captured pieces:", jumped_pieces)
             if jumped_pieces:
-                self.board.erase_jumped_Pieces(jumped_pieces)
-            self.board.update_last_move(self.turn)
+                self.board.erase_jumped_pieces(jumped_pieces)
+            # self.board.update_last_move(self.turn)
             print("Turn nr:", self.turn_nr)
             print("Remaining black pieces:", self.board.black_pieces_left)
             print("Remaining white pieces:", self.board.white_pieces_left)
@@ -54,39 +58,38 @@ class Game:
         return True
 
 
-    def get_all_posible_moves(self, board, color):
+    def get_all_possible_moves(self, board, color):
         possible_moves = {}
-        for Piece in board.get_all_pieces(color):
-            possible_moves.update(board.get_possible_moves(Piece))
-
+        for piece in board.get_all_pieces(color):
+            possible_moves.update(board.get_possible_moves(piece))
         return possible_moves
 
 
-    def draw_posible_moves(self, posible_moves):
-        for move in posible_moves:
-            row, column = move
-            pygame.draw.circle(self.surface, BLUE, (column * SQARE_SIZE + SQARE_SIZE // 2,
-                                                    row * SQARE_SIZE + SQARE_SIZE // 2), 10)
+    def draw_possible_moves(self, possible_moves):
+        if self.selected_piece:
+            for move in possible_moves:
+                row, column = move
+                pygame.draw.circle(self.surface, BLUE, (column * SQUARE_SIZE + SQUARE_SIZE // 2,
+                                                        row * SQUARE_SIZE + SQUARE_SIZE // 2), 10)
 
 
-    def is_winner(self):
-        return self.board.check_if_winner()
-
+    def has_won(self):
+        return self.board.check_has_won()
 
 
     def update(self, surface):
-            self.board.draw(surface)
-            self.draw_posible_moves(self.posible_moves)
+            self.board.draw_board(surface)
+            self.draw_possible_moves(self.possible_moves)
             pygame.display.update()
 
 
     def change_player_turn(self):
         self.possible_moves = {}
         self.turn_nr += 1
-        if self.turn == CREAM:
+        if self.turn == WHITE:
             self.turn = BLACK
         else:
-            self.turn = CREAM
+            self.turn = WHITE
 
  
     def reset(self):

@@ -6,8 +6,8 @@ from components.const import WIDTH, HEIGHT
 
 class Checkers(UIWindow):
 
-    def __init__(self, pozitie, ui_manager):
-        super().__init__(pygame.Rect(pozitie, (WIDTH + 32, HEIGHT + 59)), ui_manager,
+    def __init__(self, position, ui_manager):
+        super().__init__(pygame.Rect(position, (WIDTH + 32, HEIGHT + 59)), ui_manager,
                          window_display_title="",
                          object_id="#checkers_window")
         game_surface_size = self.get_container().get_size()
