@@ -2,13 +2,14 @@ import pygame
 from .const import WHITE, BLACK, GREY, SQUARE_SIZE, CROWN
 
 class Piece:
-    MARGIN = 10
-    BORDER = 2
+
 
     def __init__(self, row, column, color):
         self.row = row
         self.column = column
         self.color = color
+        self.margin = 10
+        self.border = 2
         self.is_king = False
         self.x, self.y = self.get_position()
         self.is_selected = False
@@ -28,8 +29,8 @@ class Piece:
 
 
     def draw_piece(self, surface):
-        radius = SQUARE_SIZE // 2 - self.MARGIN
-        pygame.draw.circle(surface, GREY, (self.x, self.y), radius + self.BORDER)
+        radius = SQUARE_SIZE // 2 - self.margin
+        pygame.draw.circle(surface, GREY, (self.x, self.y), radius + self.border)
         pygame.draw.circle(surface, self.color, (self.x, self.y), radius)
 
         if self.is_king:
@@ -40,7 +41,7 @@ class Piece:
                                                            SQUARE_SIZE, SQUARE_SIZE), 3)
 
 
-    def move(self, row, column):
+    def update(self, row, column):
         self.row = row
         self.column = column
         self.x, self.y = self.get_position()
@@ -56,9 +57,9 @@ class Piece:
     def select(self):
         self.is_selected = True
 
+
     def deselect(self):
         self.is_selected = False
-
 
         
     def make_king(self):

@@ -1,8 +1,7 @@
 import pygame
-from .const import CREAM, WHITE, BLACK, BROWN, SQUARE_SIZE, ROWS, COLUMNS
+from .const import WHITE, BLACK, CREAM, BROWN, SQUARE_SIZE, ROWS, COLUMNS
 from .piece import Piece
-# import csv
-# import os
+
 
 class Board:
     def __init__(self):
@@ -30,7 +29,7 @@ class Board:
                     self.board[row].append(0)
 
 
-    def draw_board_sqaures(self, surface):
+    def draw_board_squares(self, surface):
         surface.fill(CREAM)
         for row in range(ROWS):
             for column in range((row+1) % 2, COLUMNS, 2):
@@ -39,7 +38,7 @@ class Board:
 
 
     def draw_board(self, surface):
-        self.draw_board_sqaures(surface)
+        self.draw_board_squares(surface)
         for row in range(ROWS):
             for column in range(COLUMNS):
                 piece = self.board[row][column]
@@ -47,58 +46,12 @@ class Board:
                     piece.draw_piece(surface)
 
 
-    def move(self, piece, row, column, turn_nr, jumped_pieces):
-        if jumped_pieces:
-            jumped_pieces_moves = ""
-            for jumped_piece in jumped_pieces:
-                jumped_pieces_moves += str(jumped_piece)
-            move = str(turn_nr) + ". " + str((piece.row, piece.column)) + "-" +\
-                     str(jumped_pieces_moves) + "-" + str((row, column))
-        else:
-            move = str(turn_nr) + ". " + str((piece.row, piece.column)) + "-" + str((row, column))
-
-        self.moves.append(move)
-        print("Moves:", self.moves)
-        self.board[piece.row][piece.column], self.board[row][column] = self.board[row][column], \
-                                                                           self.board[piece.row][piece.column]
-        piece.move(row, column)
-        if (row == ROWS - 1 or row == 0) and not piece.is_king:
-            piece.make_king()
-            if piece.color == WHITE:
-                self.white_kings += 1
-            else:
-                self.black_kings += 1
-
-
-    def erase_jumped_pieces(self, jumped_pieces):
-        for jumped_piece in jumped_pieces:
-            piece = self.board[jumped_piece[0]][jumped_piece[1]]
-            self.board[jumped_piece[0]][jumped_piece[1]] = 0
-            if piece != 0:
-                if piece.color == BLACK:
-                    self.black_pieces_left -= 1
-                    if piece.is_king:
-                        self.black_kings -= 1
-                elif piece.color == WHITE:
-                    self.white_pieces_left -= 1
-                    if piece.is_king:
-                        self.white_kings -= 1
-
-
-    def check_has_won(self):
-        if self.black_pieces_left <= 0:
-            return "White Player"
-        elif self.white_pieces_left <= 0:
-            return "Black Player"
-
-        return None
-
-
     def get_piece(self, row, column):
         return self.board[row][column]
-
+    
 
     def get_all_pieces(self, color):
+        # get a list of all pieces of a player
         pieces = []
         for row in self.board:
             for piece in row:
@@ -106,80 +59,118 @@ class Board:
                     pieces.append(piece)
  
         return pieces
+    
 
+    def check_if_winner(self):
+        # check if there is a winner
+        if self.black_pieces_left <= 0:
+            return "White Player"
+        elif self.white_pieces_left <= 0:
+            return "Black Player"
+
+        return None
+    
 
     def get_possible_moves(self, piece):
-        moves = {}
+        possible_moves = {}
         jump_path = []
         row = piece.row
         column = piece.column
+        # get all possible moves for small jumps
+        possible_moves.update(self._get_possible_moves(piece, row, column, 1))
+        # get all possible moves for big jumps over oponents pieces or jump chains
+        possible_moves.update(self._get_possible_moves(piece, row, column, 2, jump_path))
 
-        moves.update(self._get_possible_moves(piece, row, column, jump_path, 1))
-        moves.update(self._get_possible_moves(piece, row, column, jump_path, 2))
+        return possible_moves
+    
 
-        return moves
-
-
-    def _get_possible_moves(self, piece, row, column, jump_path, step_size):
-        ''' This method takes in a row and col of where the piece is currently during the jump. It also takes a jump_path so a king does not jump back to where it came from and to prevent jumping over the same piece twice.
-        Finally a step_size is provided: if it's 1 only short jumps are considered, if 2 then jump chains are considered
-        '''
+    def _get_possible_moves(self, piece, row, column, step_size, jump_path=[]):
+        # first will get the new possible rows and columns based on the current piece position
         up, down, left, right = [x + y * step_size for x in [row, column] for y in [-1, 1]]
-        moves = {}
+        possible_moves = {}
+        # for every possible new location will check if the move is valid
         for new_column in [left, right]:
             for new_row in [up, down]:
-                    if not self.can_move(piece, row, column, new_row, new_column, step_size):
+                    # check to see if move is valid
+                    if not self.valid_move(piece, row, column, new_row, new_column, step_size):
                         continue
+                    # add the move to the moves dictionary for small jumps
                     if step_size == 1:
-                        moves[new_row, new_column] = []
+                        possible_moves[(new_row, new_column)] = []
                     elif step_size == 2:
                         jumped_row = (new_row + row) // 2
                         jumped_column = (new_column + column) // 2
+                        # check if same piece is jumped more than once
                         if (jumped_row, jumped_column) in jump_path:
                             continue
                         new_jump_path = jump_path.copy()
                         new_jump_path.append((jumped_row, jumped_column))
-                        moves[(new_row, new_column)] = new_jump_path
-                        # recursive call
-                        moves.update(self._get_possible_moves(piece, new_row, new_column, new_jump_path, step_size))
+                        # add the move and the jump path to the moves dictionary
+                        possible_moves[(new_row, new_column)] = new_jump_path
+                        # recursive call to check again the possible moves using the new location
+                        possible_moves.update(self._get_possible_moves(piece, new_row, new_column, step_size, new_jump_path))
 
-        return moves
-
-
-    def can_move(self, piece, old_row, old_column, new_row, new_column, step_size):
-        '''Evaluates to True if boundaries are right and if current piece between start/end location is of different color
-        '''
-
-#       print (old_row, old_column, "->", new_row, new_column)
-        if not (piece.is_king or new_row == old_row + piece.get_move_direction() * step_size):
-            # invalid direction
-            return False
-        if not (0 <= new_row < ROWS and 0 <= new_column < COLUMNS):
-            # outside of board
-            return False
-        new_location = self.get_piece(new_row, new_column)
-        if new_location != 0:
-            # jump location not empty
-            return False
-        # all base obstacles have been overcome
-        if step_size == 2:
-            jumped_row = (old_row + new_row) // 2
-            jumped_column = (old_column + new_column) // 2
-            jumped_piece = self.get_piece(jumped_row, jumped_column)
-            if jumped_piece == 0 or jumped_piece.color == piece.color:
-                return False
-            
-        return True
+        return possible_moves
 
 
+    def valid_move(self, piece, old_row, old_column, new_row, new_column, step_size):
+       # check to see if the piece jump direction is valid
+        if (piece.is_king or new_row == old_row + piece.get_move_direction() * step_size):
+            # check if jump is on board
+            if (0 <= new_row < ROWS and 0 <= new_column < COLUMNS):
+                new_location = self.get_piece(new_row, new_column)
+                # check if new location in empty        
+                if new_location == 0:
+                    if step_size == 1:
+                        return True
+                    # check if the jumped square has an opponents piece
+                    elif step_size == 2:
+                        jumped_row = (old_row + new_row) // 2
+                        jumped_column = (old_column + new_column) // 2
+                        jumped_piece = self.get_piece(jumped_row, jumped_column)
+                        if jumped_piece != 0 and jumped_piece.color != piece.color:
+                            return True
+        return False
 
-    # def update_last_move(self, color):
-    #     for row in range(ROWS):
-    #         for column in range(COLUMNS):
-    #             if self.board[row][column] != 0:
-    #                 if color == WHITE:
-    #                     if self.board[row][column].last_piece_moved and self.board[row][column].color == BLACK:
-    #                         self.board[row][column].last_piece_moved = False
-    #                 elif color == BLACK:
-    #                     if self.board[row][column].last_piece_moved and self.board[row][column].color == WHITE:
-    #                         self.board[row][column].last_piece_moved = False
+
+    def move(self, piece, row, column, turn_nr):
+        # print the move in the console
+        if turn_nr % 2 == 1:
+            move = str(turn_nr) + ". " + "White: " + str((piece.row, piece.column)) + " --> " + str((row, column))
+        else:
+            move = str(turn_nr) + ". " + "Black: " + str((piece.row, piece.column)) + " --> " + str((row, column))
+        print(move)
+        # move the piece in the board matrix to the new location
+        self.board[row][column] = piece
+        # erase the piece from the previus location (done now in the game.select)
+        # self.board[piece.row][piece.column] = 0
+        # update the moved piece attributes (row, column, x and y)
+        piece.update(row, column)
+        if (row == 0 or row == ROWS - 1) and not piece.is_king:
+            piece.make_king()
+            if piece.color == WHITE:
+                self.white_kings += 1
+            else:
+                self.black_kings += 1
+
+
+    def remove(self, pieces):
+        # remove the pieces in the pieces list and update the number of pieces for each player
+        for row, column in pieces:
+            piece = self.board[row][column]
+            self.board[row][column] = 0
+            if piece != 0:
+                if piece.color == BLACK:
+                    self.black_pieces_left -= 1
+                    if piece.is_king:
+                        self.black_kings -= 1
+                else:
+                    self.white_pieces_left -= 1
+                    if piece.is_king:
+                        self.white_kings -= 1
+
+
+    def evaluate(self):
+        return self.black_pieces_left - self.white_pieces_left + (self.black_kings * 0.5 - self.white_kings * 0.5)
+
+
