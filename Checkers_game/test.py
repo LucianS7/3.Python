@@ -1,39 +1,20 @@
-import pygame
-# Set up some constants
-WIDTH = 500
-HEIGHT = 500
-# Initialize Pygame
-pygame.init()
-# Set up the display
-win = pygame.display.set_mode((WIDTH, HEIGHT))
-# Set up the clock
-clock = pygame.time.Clock()
-# Set up the circle properties
-x = 0
-y = HEIGHT/2
-radius = 50
-color = (0,0,255)
-# Game loop
-running = True
-while running:
-    # keep the loop running at the right speed
-    clock.tick(60)
-    
-    # Event handling
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-    
-    # Update
-    x += 1
-    if x > WIDTH:
-        x = 0 - radius
-    # Draw
-    win.fill((255,255,255))
-    pygame.draw.circle(win, color, (x, y), radius)
-    pygame.draw.circle(win, color, (x+20, y), 25 + 2)
-    pygame.draw.circle(win, color, (x+50, y), 25)
+jump_path = [(0, 2), (3, 4), (5, 7)]  # Replace with your actual jump path
 
-    # After drawing everything, flip the display
-    pygame.display.flip()
-pygame.quit()
+move_path = []
+
+for i in range(len(jump_path) - 1):
+    r0, c0 = jump_path[i]
+    r1, c1 = jump_path[i + 1]
+    print(i)
+    
+
+    # Determine the direction of the move
+    move_direction = (r1 - r0, c1 - c0)
+
+    # Add 1 to either the row or column based on the move direction
+    new_row = r1 + move_direction[0]
+    new_col = c1 + move_direction[1]
+
+    move_path.append((new_row, new_col))
+
+print(move_path)

@@ -69,9 +69,10 @@ def main():
     running = True
     x = 0
     y = 0
-    new_x = 0
-    new_y = 0
-    moving = False
+    next_x = 0
+    next_y = 0
+    move = False
+    move_path = []
   
     while running:
         time_delta = clock.tick(FPS) / 1000
@@ -101,7 +102,7 @@ def main():
                 manager.set_window_resolution((new_width, new_height))
                                 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if not moving:
+                if not move:
                     position = pygame.mouse.get_pos()
                     valid_position = valid_board_coordinates(position)
                     if valid_position:
@@ -109,14 +110,12 @@ def main():
                         if not game.selected_piece:
                             game.select(row, column)         
                         else:
-                            moving = game.can_move(row, column)
-                            if moving:
+                            move = game.can_move(row, column)
+                            if move:
                                 x, y = game.selected_piece.get_position()
-                                new_x, new_y = game.get_center_of_square(row, column)
-                            else:
-                                game.selected_piece.deselect()
-                                game.selected_piece = None
-                                game.select(row, column)
+                                move_path = game.move_path
+                            if not move:
+                                game.deselect()
 
             if event.type == UI_BUTTON_PRESSED:
                 if event.ui_element == new_game_button:
@@ -135,14 +134,25 @@ def main():
         #     new_board = ai_algorithm(game.get_board(), 2, ai_color, game)
         #     game.ai_move(new_board)
 
-        if moving and x != new_x:
-            x, y = game.render_animation(x, y, new_x, new_y)
-        if moving and x == new_x and new_x != 0:
-            row, column = game.get_row_and_column((new_x, new_y))
-            game.move(row, column)
-            new_x = 0
-            new_y = 0
-            moving = False
+        if move:
+            if next_x == 0 and next_y == 0:
+                next_row, next_column = game.move_path[0]
+                next_x, next_y = game.get_center_of_square(next_row, next_column)
+            elif x != next_x and next_x !=0:
+                x, y = game.render_animation(x, y, next_x, next_y)
+            elif x == next_x and next_x != 0:
+                del move_path[0]
+                if move_path:
+                    x = next_x
+                    y = next_y
+                    next_row, next_column = move_path[0]
+                    next_x, next_y = game.get_center_of_square(next_row, next_column)
+                else:
+                    row, column = game.get_row_and_column((next_x, next_y))
+                    game.move(row, column)
+                    next_x = 0
+                    next_y = 0
+                    move = False
            
         screen.blit(background_surface, (0, 0))
         screen.blit(game_title_shadow, (((screen.get_width() - game_title.get_rect().width) // 2 + 2), 7))
@@ -153,10 +163,10 @@ def main():
         
         game.update(game_surface.image)
 
-        if not moving and game.has_winner() != None:
+        if not move and game.has_winner() != None:
             print("Winner:", game.has_winner())
             pygame.quit()
-        elif not moving and game.get_all_possible_moves(game.board, game.turn) == {}:
+        elif not move and game.get_all_possible_moves(game.board, game.turn) == {}:
             if game.turn == BLACK:
                 print("Winner: White Player")
             elif game.turn == WHITE:

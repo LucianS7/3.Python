@@ -16,6 +16,7 @@ class Checkers:
         self.turn = WHITE
         self.turn_nr = 1
         self.possible_moves = {}
+        self.move_path = []
 
 
     def update(self, surface):
@@ -55,15 +56,31 @@ class Checkers:
             # draw a light green rectangle around the selected piece
             piece.select()
             return True
-
         return False
+    
+
+    def deselect(self):
+        self.selected_piece.deselect()
+        self.selected_piece = None
  
+
     def can_move(self, row, column):
         # check if the selected piece can move to the selected position
         new_position = self.board.get_piece(row, column)
         # check if there is a selected piece, the selected positon is empty and the move is valid
         if self.selected_piece and new_position == 0 and (row, column) in self.possible_moves:
             self.board.board[self.selected_piece.row][self.selected_piece.column] = 0
+            jump_path = self.possible_moves[(row, column)]
+            self.move_path.append((row, column))
+            if len(jump_path) > 1:
+                for i in range(len(jump_path) - 1, 0, -1):
+                    r0, c0 = self.move_path[0]  
+                    r1, c1 = jump_path[i]
+                    move_direction = (r1 - r0, c1 - c0)
+                    step_size = 2
+                    new_row = r0 + move_direction[0] * step_size
+                    new_column = c0 + move_direction[1] * step_size
+                    self.move_path.insert(0, (new_row, new_column))
             return True
         return False
 
@@ -87,11 +104,13 @@ class Checkers:
             # print("White kings:", self.board.white_kings)
         # change the player turn
         self.change_player_turn()
+        # reset the  move path
+        self.move_path = []
 
 
-    def render_animation(self, x, y, new_x, new_y):
+    def render_animation(self, x, y, next_x, next_y):
         radius = SQUARE_SIZE // 2 - self.selected_piece.margin
-        if new_x > x and new_y > y:
+        if next_x > x and next_y > y:
             pygame.draw.circle(
                 self.surface, GREY, (x, y), radius + self.selected_piece.border)
             pygame.draw.circle(
@@ -100,7 +119,7 @@ class Checkers:
                 self.surface.blit(
                     CROWN, (x - CROWN.get_width() // 2, y - CROWN.get_height() // 2))
             return x + 1, y + 1            
-        elif new_x > x and new_y < y:
+        elif next_x > x and next_y < y:
             pygame.draw.circle(
                 self.surface, GREY, (x, y), radius + self.selected_piece.border)
             pygame.draw.circle(
@@ -109,7 +128,7 @@ class Checkers:
                 self.surface.blit(
                     CROWN, (x - CROWN.get_width() // 2, y - CROWN.get_height() // 2))
             return x + 1, y - 1
-        elif new_x < x and new_y > y:
+        elif next_x < x and next_y > y:
             pygame.draw.circle(
                 self.surface, GREY, (x, y), radius + self.selected_piece.border)
             pygame.draw.circle(
@@ -118,7 +137,7 @@ class Checkers:
                 self.surface.blit(
                     CROWN, (x - CROWN.get_width() // 2, y - CROWN.get_height() // 2))
             return x - 1, y + 1
-        elif new_x < x and new_y < y:
+        elif next_x < x and next_y < y:
             pygame.draw.circle(
                 self.surface, GREY, (x, y), radius + self.selected_piece.border)
             pygame.draw.circle(
@@ -190,11 +209,6 @@ class Checkers:
             pygame.draw.rect(surface, (220, 220, 220), pygame.Rect(x - 84, y - 68, 67, 67), 4)
             pygame.draw.rect(surface, (0, 0, 0), pygame.Rect((x - 84, y + 2 , 67, 67)), 4) 
 
-    def last_piece(self):
-        if self.board.white_pieces_left == 1 or self.board.black_pieces_left == 1:
-            return True
-        return False
-      
 
     # def get_board(self):
     #     return self.board
