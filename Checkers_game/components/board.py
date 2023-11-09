@@ -69,7 +69,7 @@ class Board:
             return "Black Player"
 
         return None
-    
+
 
     def get_possible_moves(self, piece):
         possible_moves = {}
@@ -133,17 +133,17 @@ class Board:
         return False
 
 
-    def move(self, piece, row, column, turn_nr):
+    def move(self, piece, row, column):
         # print the move in the console
-        if turn_nr % 2 == 1:
-            move = str(turn_nr) + ". " + "White: " + str((piece.row, piece.column)) + " --> " + str((row, column))
-        else:
-            move = str(turn_nr) + ". " + "Black: " + str((piece.row, piece.column)) + " --> " + str((row, column))
-        print(move)
+        # if turn_nr % 2 == 1:
+        #     move = str(turn_nr) + ". " + "White: " + str((piece.row, piece.column)) + " --> " + str((row, column))
+        # else:
+        #     move = str(turn_nr) + ". " + "Black: " + str((piece.row, piece.column)) + " --> " + str((row, column))
+        # print(move)
         # move the piece in the board matrix to the new location
         self.board[row][column] = piece
-        # erase the piece from the previus location (done now in the game.select)
-        # self.board[piece.row][piece.column] = 0
+        # erase the piece from the previus location 
+        self.board[piece.row][piece.column] = 0
         # update the moved piece attributes (row, column, x and y)
         piece.update(row, column)
         if (row == 0 or row == ROWS - 1) and not piece.is_king:

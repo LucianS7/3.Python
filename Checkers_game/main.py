@@ -73,6 +73,7 @@ def main():
     next_y = 0
     move = False
     move_path = []
+    ai_color = BLACK
   
     while running:
         time_delta = clock.tick(FPS) / 1000
@@ -130,10 +131,6 @@ def main():
           
             manager.process_events(event)
 
-        # if game.game.turn == ai_color:
-        #     new_board = ai_algorithm(game.get_board(), 2, ai_color, game)
-        #     game.ai_move(new_board)
-
         if move:
             if next_x == 0 and next_y == 0:
                 next_row, next_column = game.move_path[0]
@@ -153,7 +150,16 @@ def main():
                     next_x = 0
                     next_y = 0
                     move = False
-           
+        else:
+            if game.turn == ai_color:
+                value, new_board = ai_algorithm(game.get_board(), 2, ai_color, game)
+                if new_board:
+                    game.ai_move(new_board)
+                    move = True
+                    x, y = game.selected_piece.get_position()
+                    move_path = game.move_path
+                    new_board = None
+
         screen.blit(background_surface, (0, 0))
         screen.blit(game_title_shadow, (((screen.get_width() - game_title.get_rect().width) // 2 + 2), 7))
         screen.blit(game_title, (((screen.get_width() - game_title.get_rect().width) // 2), 5))
@@ -162,16 +168,15 @@ def main():
         manager.draw_ui(screen)
         
         game.update(game_surface.image)
-
+        
         if not move and game.has_winner() != None:
-            print("Winner:", game.has_winner())
-            pygame.quit()
+            winner = game.has_winner()
+            game.show_winner(background_surface, winner)
         elif not move and game.get_all_possible_moves(game.board, game.turn) == {}:
             if game.turn == BLACK:
-                print("Winner: White Player")
+                game.show_winner(background_surface, WHITE)
             elif game.turn == WHITE:
-                print("Winner: Black Player")
-            pygame.quit()
+                game.show_winner(background_surface, BLACK)
 
     pygame.quit()
 

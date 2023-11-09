@@ -69,7 +69,6 @@ class Checkers:
         new_position = self.board.get_piece(row, column)
         # check if there is a selected piece, the selected positon is empty and the move is valid
         if self.selected_piece and new_position == 0 and (row, column) in self.possible_moves:
-            self.board.board[self.selected_piece.row][self.selected_piece.column] = 0
             jump_path = self.possible_moves[(row, column)]
             self.move_path.append((row, column))
             if len(jump_path) > 1:
@@ -81,6 +80,8 @@ class Checkers:
                     new_row = r0 + move_direction[0] * step_size
                     new_column = c0 + move_direction[1] * step_size
                     self.move_path.insert(0, (new_row, new_column))
+            # remove the selected piece from the board before the move
+            self.board.board[self.selected_piece.row][self.selected_piece.column] = 0
             return True
         return False
 
@@ -89,7 +90,7 @@ class Checkers:
         # get the captured pieces list from the possible moves
         captured_pieces = self.possible_moves[(row, column)]
         # move the current piece on the board
-        self.board.move(self.selected_piece, row, column, self.turn_nr)
+        self.board.move(self.selected_piece, row, column)
         # deselect the moved piece
         self.selected_piece.deselect()
         self.selected_piece = None
@@ -157,8 +158,8 @@ class Checkers:
 
 
     def draw_possible_moves(self, possible_moves):
-        # draw blue dots where the selected piece can move
-        if self.selected_piece:
+        # draw a semiopaque piece where the selected piece can move
+        if self.selected_piece and not self.move_path:
             for move in possible_moves:
                 row, column = move
                 color = self.turn + (100,)
@@ -172,7 +173,15 @@ class Checkers:
 
     def has_winner(self):
         return self.board.check_if_winner()
+    
 
+    def show_winner(self, surface, winner):
+        font = pygame.font.SysFont("arialblack", 38)
+        white_text = font.render(f"Winner: {winner}", True, (0, 0, 0))
+        white_text_width = white_text.get_width()
+        x_white = (surface.get_width() - white_text_width) // 2
+        surface.blit(white_text, ((x_white, surface.get_height()//2 + 320)))
+        
 
     def change_player_turn(self):
         self.possible_moves = {}
@@ -210,12 +219,18 @@ class Checkers:
             pygame.draw.rect(surface, (0, 0, 0), pygame.Rect((x - 84, y + 2 , 67, 67)), 4) 
 
 
-    # def get_board(self):
-    #     return self.board
+    def get_board(self):
+        return self.board
+    
 
-
-    # def ai_move(self, board):
-    #     self.board = board
-    #     self.change_player_turn()
-
- 
+    def ai_move(self, new_board):
+        new_row = 0
+        new_column = 0
+        for row in range(8):
+            for column in range(8):
+                if new_board.board[row][column] == 0 and self.board.board[row][column] != 0:
+                    self.select(row, column)
+                if new_board.board[row][column] != 0 and self.board.board[row][column] == 0:
+                   new_row = row
+                   new_column = column
+        self.can_move(new_row, new_column)
